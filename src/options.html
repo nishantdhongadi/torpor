@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Torpor settings</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --fg: #16161a;
+        --muted: #6b6b76;
+        --line: #e6e6ea;
+        --field: #fbfbfc;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1c1c1f;
+          --fg: #ededf0;
+          --muted: #9a9aa5;
+          --line: #2e2e33;
+          --field: #232327;
+        }
+      }
+
+      body {
+        margin: 0;
+        padding: 20px;
+        max-width: 520px;
+        background: var(--bg);
+        color: var(--fg);
+        font: 13px/1.5 system-ui, -apple-system, sans-serif;
+      }
+
+      h1 {
+        margin: 0 0 4px;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .lede {
+        margin: 0 0 20px;
+        color: var(--muted);
+      }
+
+      .field {
+        margin-bottom: 18px;
+      }
+      label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 3px;
+      }
+      .hint {
+        color: var(--muted);
+        margin: 0 0 6px;
+        font-size: 12px;
+      }
+
+      input[type="number"],
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        background: var(--field);
+        color: var(--fg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 6px 8px;
+        font: inherit;
+      }
+      input[type="number"] {
+        width: 88px;
+      }
+      textarea {
+        min-height: 92px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+        resize: vertical;
+      }
+
+      footer {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+      }
+      button {
+        font: inherit;
+        padding: 6px 14px;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        background: var(--field);
+        color: var(--fg);
+        cursor: pointer;
+      }
+      #saved {
+        color: var(--muted);
+        opacity: 0;
+        transition: opacity 0.15s;
+      }
+      #saved.show {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Torpor</h1>
+    <p class="lede">
+      Tabs stay in their spaces. Torpor only takes them out of memory, and Zen reloads them
+      the moment you open one.
+    </p>
+
+    <div class="field">
+      <label for="idleMinutes">Unload after</label>
+      <p class="hint">Minutes a tab can sit untouched before it goes dormant.</p>
+      <input id="idleMinutes" type="number" min="1" max="10080" /> minutes
+    </div>
+
+    <div class="field">
+      <label for="maxLoaded">Keep at most</label>
+      <p class="hint">
+        A ceiling for busy stretches, when nothing has been idle long enough to sweep.
+      </p>
+      <input id="maxLoaded" type="number" min="1" max="500" /> tabs in memory
+    </div>
+
+    <div class="field">
+      <label for="keepWarm">Always keep the last</label>
+      <p class="hint">
+        The most recently used tabs are never unloaded. Keep this at 8 or above: it is the
+        only thing protecting the second pane of a split view, which Torpor cannot see.
+      </p>
+      <input id="keepWarm" type="number" min="0" max="100" /> tabs
+    </div>
+
+    <div class="field">
+      <label for="allowlist">Never unload these sites</label>
+      <p class="hint">
+        One host per line. <code>example.com</code> matches that host exactly;
+        <code>*.example.com</code> also covers its subdomains. Put your Zen Essentials here —
+        they look identical to ordinary pinned tabs from an extension, so this list is the
+        only way to spare them.
+      </p>
+      <textarea id="allowlist" spellcheck="false" placeholder="mail.google.com&#10;*.notion.so"></textarea>
+    </div>
+
+    <footer>
+      <button id="save">Save</button>
+      <button id="reset">Restore defaults</button>
+      <span id="saved">Saved</span>
+    </footer>
+
+    <script src="options.js" type="module"></script>
+  </body>
+</html>
