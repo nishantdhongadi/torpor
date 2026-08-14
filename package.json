@@ -1,0 +1,19 @@
+{
+  "name": "torpor",
+  "version": "1.0.0",
+  "description": "Keeps a large tab collection in Zen Browser without keeping it in memory.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test 'test/*.test.js'",
+    "lint": "web-ext lint",
+    "run": "web-ext run --firefox=/Applications/Zen.app/Contents/MacOS/zen --profile-create-if-missing",
+    "build": "web-ext build --overwrite-dest",
+    "sign": "web-ext sign --channel=unlisted",
+    "session": "node scripts/inspect-session.mjs"
+  },
+  "devDependencies": {
+    "web-ext": "^8.3.0"
+  }
+}
