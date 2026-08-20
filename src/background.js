@@ -5,7 +5,7 @@
 // A `let lastSeen = new Map()` up here would work in testing and quietly stop
 // working an hour later, which is the classic MV3 trap.
 
-import { selectVictims } from "./policy.js";
+import { selectVictims, normaliseAllowlist } from "./policy.js";
 import { loadSettings, saveSettings, DEFAULTS } from "./settings.js";
 
 const ALARM = "sweep";
@@ -20,7 +20,9 @@ browser.runtime.onInstalled.addListener(async () => {
 browser.runtime.onStartup.addListener(armAlarm);
 
 browser.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === ALARM) sweep();
+  // Return the promise rather than firing and forgetting: an event page can be
+  // suspended out from under an unawaited async call.
+  if (alarm.name === ALARM) return sweep();
 });
 
 async function armAlarm() {
@@ -136,16 +138,16 @@ function hostOf(url) {
   }
 }
 
-// Mirrors policy.js matching so the popup's "protected" badge cannot disagree
-// with what the sweep actually does.
+// Borrowed from policy.js rather than reimplemented, so the popup's "protected"
+// badge cannot drift away from what the sweep actually does.
 function matchesHost(entry, host) {
-  const trimmed = entry.trim().toLowerCase();
-  if (!trimmed || !host) return false;
-  if (trimmed.startsWith("*.")) {
-    const base = trimmed.slice(2);
-    return host === base || host.endsWith(`.${base}`);
-  }
-  return host === trimmed;
+  if (!host) return false;
+  const [pattern] = normaliseAllowlist([entry]);
+  if (!pattern) return false;
+  return (
+    host === pattern.host ||
+    (pattern.subdomains && host.endsWith(`.${pattern.host}`))
+  );
 }
 
 export { DEFAULTS };

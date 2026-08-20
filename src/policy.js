@@ -99,15 +99,35 @@ function warmTabIds(tabs, keepWarm) {
   return warm;
 }
 
-function normaliseAllowlist(allowlist) {
+// Allowlist entries are typed by hand or pasted out of the URL bar, so accept
+// anything that identifies a host: "example.com", "*.example.com",
+// "https://example.com/some/path#frag", "localhost:3000". An entry that looks
+// right but silently fails to match is worse than no entry at all, because the
+// tab it was meant to protect gets unloaded anyway.
+export function normaliseAllowlist(allowlist) {
   return (allowlist ?? [])
-    .map((entry) => entry.trim().toLowerCase())
-    .filter(Boolean)
-    .map((entry) =>
-      entry.startsWith("*.")
-        ? { host: entry.slice(2), subdomains: true }
-        : { host: entry, subdomains: false }
-    );
+    .map((entry) => toHostPattern(entry))
+    .filter((entry) => entry.host);
+}
+
+function toHostPattern(raw) {
+  let text = String(raw ?? "").trim().toLowerCase();
+
+  const subdomains = text.startsWith("*.");
+  if (subdomains) text = text.slice(2);
+  if (!text) return { host: "", subdomains };
+
+  // Parse with the platform's URL parser rather than a regex, so an entry can
+  // never be read differently here than the tab URL it is matched against.
+  // Hand-written entries have no scheme, so give them one; a bare "localhost:3000"
+  // would otherwise parse as a scheme rather than a host and port.
+  const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//.test(text);
+
+  try {
+    return { host: new URL(hasScheme ? text : `https://${text}`).hostname, subdomains };
+  } catch {
+    return { host: "", subdomains };
+  }
 }
 
 function isAllowlisted(url, allowlist) {

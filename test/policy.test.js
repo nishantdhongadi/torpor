@@ -247,3 +247,52 @@ test("a busy burst is caught by the budget even when nothing is idle yet", () =>
   const victims = selectVictims(tabs, { ...DEFAULTS, snoozedUntil: 0 }, NOW);
   assert.equal(30 - victims.length, DEFAULTS.maxLoaded);
 });
+
+// Real-world allowlist input. People copy out of the URL bar; an entry that
+// silently fails to match is worse than no allowlist at all, because the tab it
+// was supposed to protect gets unloaded anyway.
+test("allowlist accepts a pasted URL", () => {
+  const t = tab({ url: "https://mail.google.com/mail/u/0/#inbox" });
+  const cfg = config({ allowlist: ["https://mail.google.com/mail/u/0/#inbox"] });
+  assert.deepEqual(run([t], cfg), []);
+});
+
+test("allowlist accepts a host with a trailing slash or port", () => {
+  const a = tab({ url: "https://example.com/x" });
+  const b = tab({ url: "http://localhost:3000/app" });
+  assert.deepEqual(run([a, b], config({ allowlist: ["example.com/", "localhost:3000"] })), []);
+});
+
+test("allowlist accepts a wildcard written as a URL", () => {
+  const t = tab({ url: "https://team.notion.so/page" });
+  assert.deepEqual(run([t], config({ allowlist: ["*.notion.so/"] })), []);
+});
+
+test("allowlist still rejects an unrelated host", () => {
+  const t = tab({ url: "https://evil.com/x" });
+  assert.deepEqual(run([t], config({ allowlist: ["example.com"] })), [t.id]);
+});
+
+test("allowlist entries are parsed the same way tab URLs are", () => {
+  // A regex that disagrees with the URL parser is how an entry ends up
+  // protecting a host the user did not mean. Backslashes are the classic case:
+  // browsers read this URL's host as good.com, so the entry must too.
+  const good = tab({ url: "https://good.com/x" });
+  assert.deepEqual(run([good], config({ allowlist: ["https://good.com\\@evil.com"] })), []);
+
+  const evil = tab({ url: "https://evil.com/x" });
+  assert.deepEqual(run([evil], config({ allowlist: ["https://good.com\\@evil.com"] })), [
+    evil.id,
+  ]);
+});
+
+test("allowlist handles credentials and internationalised hosts", () => {
+  const t = tab({ url: "https://example.com/x" });
+  assert.deepEqual(run([t], config({ allowlist: ["user:pass@example.com"] })), []);
+});
+
+test("allowlist drops entries that name no host", () => {
+  const t = tab();
+  const cfg = config({ allowlist: ["", "   ", "*.", "not a host", "https://"] });
+  assert.deepEqual(run([t], cfg), [t.id]);
+});
