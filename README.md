@@ -32,7 +32,9 @@ Never touched:
 - the tab you are looking at
 - anything playing audio
 - the 8 most recently used tabs (`keepWarm`)
-- any host on your allowlist
+- any host on your allowlist — entries can be written however is convenient
+  (`example.com`, `*.example.com`, `localhost:3000`, or a URL pasted straight from the address
+  bar), and are resolved with the same URL parser used to match tabs
 - `about:`, `chrome:`, `moz-extension:`, `view-source:` and `file:` pages
 - anything holding unsaved work — a page with a `beforeunload` handler refuses to be
   discarded, and Torpor lets it win rather than injecting a content script to second-guess it
@@ -46,12 +48,29 @@ only Essentials.
 pinned tabs at the extension layer — same `pinned: true`, no distinguishing property. There is
 no way to detect them programmatically, so add their hosts in Settings.
 
+**`keepWarm` is a floor, and it outranks the ceiling.** If you set it above `maxLoaded`, that
+many tabs stay resident and the budget never binds. The settings page says so when the two
+conflict rather than letting the smaller number look effective.
+
 **`keepWarm` is what protects split view.** An extension cannot see that a split exists; only
 one of the two panes is `active`, and the other looks like any inactive tab. The default of 8
 covers it in practice. If a pane ever goes blank, raise it.
 
-Both of these fall out of how Zen implements spaces. The full investigation, with commands to
+All of these fall out of how Zen implements spaces. The full investigation, with commands to
 re-verify every claim against a future Zen build, is in [`docs/FINDINGS.md`](docs/FINDINGS.md).
+
+## What it can see
+
+`tabs`, `storage` and `alarms`. That is the whole permission list — no host permissions, no
+content scripts, no web-accessible resources.
+
+There is no network code anywhere in the extension: no `fetch`, no `XMLHttpRequest`, no
+`WebSocket`, no telemetry endpoint. Nothing leaves your machine. The only thing stored is your
+own settings and a count of how many tabs have been unloaded.
+
+The `tabs` permission does grant access to tab URLs, which is unavoidable — the allowlist has
+to match on hostnames. `grep -rn 'fetch\|XMLHttpRequest\|WebSocket' src/` returns nothing, and
+`npx web-ext build` will show you exactly which files ship.
 
 ## Install
 
@@ -60,7 +79,7 @@ Gecko build — so a self-built copy has to be signed before it will install per
 
 ```bash
 npm install
-npm test                                    # 35 tests, no browser needed
+npm test                                    # 42 tests, no browser needed
 npx web-ext sign --channel=unlisted \
   --api-key=$AMO_KEY --api-secret=$AMO_SECRET
 ```
@@ -122,4 +141,4 @@ Worth checking by hand after installing, because none of these can be settled fr
 
 ## Licence
 
-MIT
+MIT — see [LICENSE](LICENSE).
