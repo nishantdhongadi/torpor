@@ -6,6 +6,16 @@ const NUMBERS = ["idleMinutes", "maxLoaded", "keepWarm"];
 function fill(settings) {
   for (const key of NUMBERS) $(key).value = settings[key];
   $("allowlist").value = settings.allowlist.join("\n");
+  warnIfWarmExceedsBudget(settings);
+}
+
+// keepWarm is a hard floor, so a keepWarm above maxLoaded quietly wins and the
+// budget never binds. Say so rather than letting the setting look effective.
+function warnIfWarmExceedsBudget({ keepWarm, maxLoaded }) {
+  $("conflict").textContent =
+    keepWarm > maxLoaded
+      ? `Keeping the last ${keepWarm} tabs overrides the ceiling of ${maxLoaded}, so ${keepWarm} will stay in memory.`
+      : "";
 }
 
 async function save() {
@@ -21,6 +31,13 @@ async function save() {
 }
 
 $("save").addEventListener("click", save);
+for (const key of NUMBERS) {
+  $(key).addEventListener("input", () =>
+    warnIfWarmExceedsBudget(
+      Object.fromEntries(NUMBERS.map((k) => [k, Number($(k).value)]))
+    )
+  );
+}
 
 $("reset").addEventListener("click", async () => {
   // snoozedUntil is runtime state, not a preference — leave any active pause alone.

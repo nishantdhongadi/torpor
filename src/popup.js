@@ -31,6 +31,7 @@ async function render() {
   $("protect-hint").textContent = status.activeHost || "no site in this tab";
 
   $("snooze").textContent = status.snoozedUntil ? "Resume now" : "Pause for 30 minutes";
+  $("snooze").disabled = false;
 
   $("lifetime").textContent = status.lifetimeDiscarded
     ? `${status.lifetimeDiscarded.toLocaleString()} unloaded so far`

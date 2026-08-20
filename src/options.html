@@ -91,6 +91,16 @@
         color: var(--fg);
         cursor: pointer;
       }
+      .warn {
+        color: #b3541e;
+        margin: 0 0 14px;
+        font-size: 12px;
+      }
+      @media (prefers-color-scheme: dark) {
+        .warn {
+          color: #e8a06a;
+        }
+      }
       #saved {
         color: var(--muted);
         opacity: 0;
@@ -141,6 +151,8 @@
       </p>
       <textarea id="allowlist" spellcheck="false" placeholder="mail.google.com&#10;*.notion.so"></textarea>
     </div>
+
+    <p id="conflict" class="warn"></p>
 
     <footer>
       <button id="save">Save</button>
