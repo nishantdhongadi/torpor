@@ -27,6 +27,13 @@ unloaded. On a real profile this is most of them; the tab you are reading is not
 least-recently-used are unloaded until the count is back under the ceiling. This is the rule
 that catches a busy afternoon, when nothing has been idle long enough for the first rule.
 
+**Which one you actually feel.** On a collection that has been sitting a while, the idle sweep
+does nearly all the work and takes you *below* the ceiling rather than to it. With the defaults
+on a 70-tab profile where most tabs have not been opened in a day, roughly 62 go dormant and
+the working set settles at `keepWarm` — eight — not at the 20 the ceiling names. `maxLoaded` is
+a cap for bursts, not a target. If you want a larger set kept warm, raise `keepWarm`; if you
+want fewer tabs going dormant at all, raise the idle threshold.
+
 Never touched:
 
 - the tab you are looking at
