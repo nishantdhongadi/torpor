@@ -40,8 +40,10 @@ Never touched:
 - anything playing audio
 - the 8 most recently used tabs (`keepWarm`)
 - any host on your allowlist — entries can be written however is convenient
-  (`example.com`, `*.example.com`, `localhost:3000`, or a URL pasted straight from the address
-  bar), and are resolved with the same URL parser used to match tabs
+  (`example.com`, `*.example.com`, `https://*.example.com/some/path`, `localhost:3000`, or a URL
+  pasted straight from the address bar), and are resolved with the same URL parser used to match
+  tabs. The popup's *Never unload this site* adds and removes exact hosts only; a wildcard
+  covering several hosts is edited in Settings, so one click cannot silently unprotect the rest
 - `about:`, `chrome:`, `moz-extension:`, `view-source:` and `file:` pages
 - anything holding unsaved work — a page with a `beforeunload` handler refuses to be
   discarded, and Torpor lets it win rather than injecting a content script to second-guess it
@@ -62,6 +64,9 @@ conflict rather than letting the smaller number look effective.
 **`keepWarm` is what protects split view.** An extension cannot see that a split exists; only
 one of the two panes is `active`, and the other looks like any inactive tab. The default of 8
 covers it in practice. If a pane ever goes blank, raise it.
+
+It is counted per window while `maxLoaded` is global, so with three windows open the real floor
+is 24, not 8. The settings page works this out and warns you when the two collide.
 
 All of these fall out of how Zen implements spaces. The full investigation, with commands to
 re-verify every claim against a future Zen build, is in [`docs/FINDINGS.md`](docs/FINDINGS.md).
@@ -86,7 +91,7 @@ Gecko build — so a self-built copy has to be signed before it will install per
 
 ```bash
 npm install
-npm test                                    # 42 tests, no browser needed
+npm test                                    # 47 tests, no browser needed
 npx web-ext sign --channel=unlisted \
   --api-key=$AMO_KEY --api-secret=$AMO_SECRET
 ```

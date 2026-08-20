@@ -11,11 +11,27 @@ function fill(settings) {
 
 // keepWarm is a hard floor, so a keepWarm above maxLoaded quietly wins and the
 // budget never binds. Say so rather than letting the setting look effective.
+//
+// The floor is enforced per window while the ceiling is global, so with several
+// windows open the real floor is keepWarm x windows. Comparing the two numbers
+// as written would miss that entirely.
 function warnIfWarmExceedsBudget({ keepWarm, maxLoaded }) {
+  const floor = keepWarm * windowCount;
+  const perWindow =
+    windowCount > 1 ? ` (${keepWarm} in each of ${windowCount} windows)` : "";
+
   $("conflict").textContent =
-    keepWarm > maxLoaded
-      ? `Keeping the last ${keepWarm} tabs overrides the ceiling of ${maxLoaded}, so ${keepWarm} will stay in memory.`
+    floor > maxLoaded
+      ? `Keeping the last ${keepWarm} tabs warm${perWindow} overrides the ceiling of ${maxLoaded}, so ${floor} will stay in memory.`
       : "";
+}
+
+// Read once on load. The warning is advisory, so a window opened while the
+// settings page sits there does not need to move it live.
+let windowCount = 1;
+async function countWindows() {
+  const tabs = await browser.tabs.query({});
+  windowCount = Math.max(1, new Set(tabs.map((tab) => tab.windowId)).size);
 }
 
 async function save() {
@@ -45,4 +61,5 @@ $("reset").addEventListener("click", async () => {
   fill(await saveSettings(defaults));
 });
 
+await countWindows();
 fill(await loadSettings());
