@@ -14,7 +14,7 @@ export default {
   ignoreFiles,
   lint: { warningsAsErrors: false },
   run: {
-    firefox: "/Applications/Zen.app/Contents/MacOS/zen",
+    firefox: process.env.ZEN_BINARY ?? "/Applications/Zen.app/Contents/MacOS/zen",
     startUrl: ["about:debugging#/runtime/this-firefox"],
   },
 };

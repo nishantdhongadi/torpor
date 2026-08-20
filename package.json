@@ -8,7 +8,7 @@
   "scripts": {
     "test": "node --test 'test/*.test.js'",
     "lint": "web-ext lint",
-    "run": "web-ext run --firefox=/Applications/Zen.app/Contents/MacOS/zen --profile-create-if-missing",
+    "run": "web-ext run",
     "build": "web-ext build --overwrite-dest",
     "sign": "web-ext sign --channel=unlisted",
     "session": "node scripts/inspect-session.mjs"
