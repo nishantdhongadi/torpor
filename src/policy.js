@@ -112,19 +112,25 @@ export function normaliseAllowlist(allowlist) {
 
 function toHostPattern(raw) {
   let text = String(raw ?? "").trim().toLowerCase();
+  if (!text) return { host: "", subdomains: false };
+
+  // Strip the scheme before looking for the wildcard, so "https://*.example.com"
+  // reads the same as "*.example.com". Testing for "*." first would leave the
+  // asterisk embedded in the host, producing an entry that matches nothing while
+  // still looking correct in the settings box.
+  const scheme = text.match(/^[a-z][a-z0-9+.-]*:\/\//);
+  if (scheme) text = text.slice(scheme[0].length);
 
   const subdomains = text.startsWith("*.");
   if (subdomains) text = text.slice(2);
   if (!text) return { host: "", subdomains };
 
-  // Parse with the platform's URL parser rather than a regex, so an entry can
-  // never be read differently here than the tab URL it is matched against.
-  // Hand-written entries have no scheme, so give them one; a bare "localhost:3000"
-  // would otherwise parse as a scheme rather than a host and port.
-  const hasScheme = /^[a-z][a-z0-9+.-]*:\/\//.test(text);
-
+  // Everything is parsed by the platform, never by a regex, so an entry cannot
+  // be read differently here than the tab URL it is matched against. The scheme
+  // is synthetic: a bare "localhost:3000" would otherwise parse as a scheme
+  // rather than a host and port.
   try {
-    return { host: new URL(hasScheme ? text : `https://${text}`).hostname, subdomains };
+    return { host: new URL(`https://${text}`).hostname, subdomains };
   } catch {
     return { host: "", subdomains };
   }

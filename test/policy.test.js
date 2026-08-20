@@ -296,3 +296,17 @@ test("allowlist drops entries that name no host", () => {
   const cfg = config({ allowlist: ["", "   ", "*.", "not a host", "https://"] });
   assert.deepEqual(run([t], cfg), [t.id]);
 });
+
+test("allowlist reads a wildcard the same way with or without a scheme", () => {
+  // The README advertises both wildcards and pasting from the address bar, so
+  // the combination has to work rather than producing a dead entry.
+  const t = tab({ url: "https://team.notion.so/page" });
+  for (const entry of ["*.notion.so", "https://*.notion.so", "https://*.notion.so/page"]) {
+    assert.deepEqual(run([t], config({ allowlist: [entry] })), [], `entry: ${entry}`);
+  }
+});
+
+test("a scheme-prefixed wildcard still does not match a lookalike", () => {
+  const t = tab({ url: "https://notnotion.so/x" });
+  assert.deepEqual(run([t], config({ allowlist: ["https://*.notion.so"] })), [t.id]);
+});
