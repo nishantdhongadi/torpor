@@ -24,11 +24,21 @@ async function render() {
     ? `${status.pending} tab${status.pending === 1 ? "" : "s"} ready`
     : "nothing to unload right now";
 
-  $("protect").disabled = !status.activeHost;
-  $("protect").firstChild.textContent = status.activeHostAllowlisted
-    ? "Stop protecting this site"
+  const match = status.allowlistMatch;
+  // A wildcard covering this host is not something one click should undo: it
+  // protects other hosts too. Say where the protection comes from and send the
+  // user to Settings instead of quietly deleting it.
+  $("protect").disabled = !status.activeHost || (match && !match.exact);
+  $("protect").firstChild.textContent = match
+    ? match.exact
+      ? "Stop protecting this site"
+      : "Protected by a rule"
     : "Never unload this site";
-  $("protect-hint").textContent = status.activeHost || "no site in this tab";
+  $("protect-hint").textContent = match
+    ? match.exact
+      ? match.entry
+      : `covered by ${match.entry} — edit in Settings`
+    : status.activeHost || "no site in this tab";
 
   $("snooze").textContent = status.snoozedUntil ? "Resume now" : "Pause for 30 minutes";
   $("snooze").disabled = false;

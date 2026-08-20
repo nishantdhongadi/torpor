@@ -189,7 +189,7 @@ test("getStatus reports the live picture, not a cached one", async () => {
   assert.equal(before.discarded, 0);
   assert.ok(before.pending > 0, "should have work queued");
   assert.equal(before.activeHost, "mail.google.com");
-  assert.equal(before.activeHostAllowlisted, false);
+  assert.equal(before.allowlistMatch, null);
 
   await send({ type: "sweepNow" });
 
@@ -237,4 +237,38 @@ test("ignores messages that are not ours", async () => {
   reset();
   assert.equal(send({ type: "somethingElse" }), undefined);
   assert.equal(send(undefined), undefined);
+});
+
+test("un-protecting a site removes only an entry naming that exact host", () => {
+  const t = tab({ active: true, url: "https://mail.google.com/inbox" });
+  reset([t]);
+  state.storage.allowlist = ["*.google.com", "mail.google.com"];
+
+  return send({ type: "toggleAllowlistHost", host: "mail.google.com" }).then(() => {
+    // The wildcard covers docs and drive as well, so a single-host toggle must
+    // leave it alone.
+    assert.deepEqual(state.storage.allowlist, ["*.google.com"]);
+  });
+});
+
+test("a host protected only by a wildcard is reported as not removable", async () => {
+  const t = tab({ active: true, url: "https://docs.google.com/x" });
+  reset([t]);
+  state.storage.allowlist = ["*.google.com"];
+
+  const status = await send({ type: "getStatus" });
+  assert.deepEqual(status.allowlistMatch, { entry: "*.google.com", exact: false });
+
+  // ...and toggling it is a no-op rather than a silent mass un-protect.
+  await send({ type: "toggleAllowlistHost", host: "docs.google.com" });
+  assert.deepEqual(state.storage.allowlist, ["*.google.com"]);
+});
+
+test("an exact entry is preferred over a wildcard that also covers the host", async () => {
+  const t = tab({ active: true, url: "https://mail.google.com/x" });
+  reset([t]);
+  state.storage.allowlist = ["*.google.com", "mail.google.com"];
+
+  const status = await send({ type: "getStatus" });
+  assert.deepEqual(status.allowlistMatch, { entry: "mail.google.com", exact: true });
 });

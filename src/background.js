@@ -88,8 +88,11 @@ async function getStatus() {
     snoozedUntil: settings.snoozedUntil > now ? settings.snoozedUntil : 0,
     lifetimeDiscarded: stats.discarded,
     activeHost: hostOf(active?.url),
-    activeHostAllowlisted:
-      !!active && settings.allowlist.some((entry) => matchesHost(entry, hostOf(active.url))),
+    // Which entry protects the active tab, and whether the popup can take it
+    // back off again. Protection inherited from a wildcard is not removable by a
+    // single-host toggle — dropping "*.google.com" to un-protect mail would
+    // silently unprotect docs and drive too.
+    allowlistMatch: findAllowlistMatch(settings.allowlist, hostOf(active?.url)),
   };
 }
 
@@ -120,14 +123,46 @@ browser.runtime.onMessage.addListener((message) => {
 async function toggleAllowlistHost(host) {
   if (!host) return false;
   const { allowlist } = await loadSettings();
+  const match = findAllowlistMatch(allowlist, host);
 
-  const already = allowlist.some((entry) => matchesHost(entry, host));
-  const next = already
-    ? allowlist.filter((entry) => !matchesHost(entry, host))
-    : [...allowlist, host];
+  if (!match) {
+    await saveSettings({ allowlist: [...allowlist, host] });
+    return true;
+  }
 
-  await saveSettings({ allowlist: next });
-  return !already;
+  // Only ever remove entries naming this exact host. A wildcard that happens to
+  // cover it belongs to other hosts as well and is the settings page's business,
+  // not a one-click toggle's.
+  if (!match.exact) return true;
+
+  await saveSettings({
+    allowlist: allowlist.filter((entry) => !isExactEntryFor(entry, host)),
+  });
+  return false;
+}
+
+/**
+ * The allowlist entry protecting `host`, preferring an exact entry over a
+ * wildcard so the popup offers to remove the one it can actually remove.
+ */
+function findAllowlistMatch(allowlist, host) {
+  if (!host) return null;
+
+  let wildcard = null;
+  for (const entry of allowlist) {
+    const [pattern] = normaliseAllowlist([entry]);
+    if (!pattern?.host) continue;
+    if (host === pattern.host) return { entry, exact: true };
+    if (pattern.subdomains && host.endsWith(`.${pattern.host}`)) {
+      wildcard ??= { entry, exact: false };
+    }
+  }
+  return wildcard;
+}
+
+function isExactEntryFor(entry, host) {
+  const [pattern] = normaliseAllowlist([entry]);
+  return pattern?.host === host && !pattern.subdomains;
 }
 
 function hostOf(url) {
@@ -136,18 +171,6 @@ function hostOf(url) {
   } catch {
     return "";
   }
-}
-
-// Borrowed from policy.js rather than reimplemented, so the popup's "protected"
-// badge cannot drift away from what the sweep actually does.
-function matchesHost(entry, host) {
-  if (!host) return false;
-  const [pattern] = normaliseAllowlist([entry]);
-  if (!pattern) return false;
-  return (
-    host === pattern.host ||
-    (pattern.subdomains && host.endsWith(`.${pattern.host}`))
-  );
 }
 
 export { DEFAULTS };
